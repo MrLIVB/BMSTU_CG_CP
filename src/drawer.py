@@ -1,5 +1,5 @@
 from PyQt5.QtGui import QImage, QPainter, QColor
-from  PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt
 
 class BaseDrawer(object):
     def drawLine(self, x1: float, y1: float, x2: float, y2: float, color):

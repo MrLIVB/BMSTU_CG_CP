@@ -1,11 +1,17 @@
 from math import floor
 
-from basescenemanager import *
+from scene import BaseScene
 from builddirector import BuildDirector
 from musclemodel import Morph
 from visibleobject import *
 from visualizer import *
 
+class BaseSceneManager(object):
+    def __init__(self, scene: BaseScene):
+        self.scene = scene
+
+    def execute(self):
+        pass
 
 class LoadManager(BaseSceneManager):
     def __init__(self, scene: BaseScene, build_director: BuildDirector):
@@ -83,11 +89,8 @@ class ZBuffer(object):
         x = [floor(points[i].x) for i in range(3)]
         y = [floor(points[i].y) for i in range(3)]
 
-        ymax = max(y)
-        ymin = min(y)
-
-        ymax = ymax if ymax < self.height else self.height
-        ymin = 0 if ymin < 0 else ymin
+        ymax = min(max(y), self.height)
+        ymin = max(min(y), 0)
 
         x1 = x2 = 0
         z1 = z2 = 0
@@ -113,9 +116,9 @@ class ZBuffer(object):
                 x2, x1 = x1, x2
                 z2, z1 = z1, z2
 
-            x_start = 0 if x1 < 0 else x1
-            x_end = x2 if x2 < self.width else self.width
-            for x_current in range(x_start, x_end):
+            x_max = min(x2, self.width)
+            x_min = max(x1, 0)
+            for x_current in range(x_min, x_max):
                 m = float(x1 - x_current) / (x1 - x2)
                 z_current = z1 + m * (z2 - z1)
                 self.process_point(x_current, y_current, int(z_current), color)
