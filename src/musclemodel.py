@@ -2,11 +2,11 @@ from math import sqrt, pi
 
 from PyQt5.QtCore import Qt
 
-from baseobject import Point, Vector
-from visibleobject import VisibleObject, Polygon
+from baseobject import BaseObject, Point, Vector
+from visibleobject import Polygon
 from visitor import MoveVisitor, RotateVisitor
 
-class Sphere(object):
+class Ellipsoid(object):
     def __init__(self):
         x = 1
         z = 1
@@ -92,7 +92,7 @@ class Sphere(object):
 
 # r - соотношение между a и b,
 # l - может быть задана расстоянием между точками начала и конца
-class StraightMuscleModel(VisibleObject):
+class StraightMuscleModel(BaseObject):
     def __init__(self, a, b, l, center: Point = Point(0, 0, 0), rotation: Point = Point(0, 0, 0)):
         self.a_base = a
         self.b_base = b
@@ -120,8 +120,8 @@ class StraightMuscleModel(VisibleObject):
 
     def triangulate(self):
         # возвращает множество своих полигонов расчитанных в соответствии с парамтерами
-        temp_sphere = Sphere()
-        temp_sphere.start_division(4) 
+        temp_sphere = Ellipsoid()
+        temp_sphere.start_division(4)
         temp_sphere.reshape(self.l_current / 2, self.a_current, self.b_current)
 
         polygons = temp_sphere.polygonise(self.center.x, self.center.y, self.center.z)
@@ -134,19 +134,22 @@ class StraightMuscleModel(VisibleObject):
 
         return polygons
 
-    def contract(self, l_new):
+    def contract(self, parameter, contraction):
         r = self.a_base / self.b_base
-        tension = max((2 * (1 - l_new)), 1) if l_new < self.l_base else 0
-        l_new = self.l_base * l_new
-
         volume = 4 * pi * self.a_base * self.b_base * self.l_base / 2 / 3
+        tension = 0
+        l_new = self.l_base
+
+        if contraction == 0:  # Изотоническое сокращение - мышца меняет длину
+            l_new = self.l_base * parameter
+        elif contraction == 1:  # Изометрическое сокращение - длина не меняется
+            tension = parameter
 
         k = 1.28  # параметр, регулирующий влияние "напряженности" на новое соотношение r, в статье рекомендуется 2.56
         r_new = (1 - tension + k * tension) * r
         b_new = sqrt(3 * volume / (4 * pi * r_new * (l_new / 2)))
 
         self.a_current = b_new * r_new
-
         self.b_current = b_new
         self.l_current = l_new
 
@@ -171,7 +174,7 @@ class StraightMuscleModel(VisibleObject):
         for i in range(len(self.polygons)):
             self.polygons[i].color = color
 
-class ComplexMuscleModel(VisibleObject, list):
+class ComplexMuscleModel(BaseObject, list):
     def __init__(self, parts=None):
         super().__init__()
         if parts is None:
@@ -193,10 +196,10 @@ class ComplexMuscleModel(VisibleObject, list):
 
         self.center.divide_number(len(self.parts))
 
-    def contract(self, l_new):
+    def contract(self, l_new, contraction):
         for part in self.parts:
             part: StraightMuscleModel
-            part.contract(l_new)
+            part.contract(l_new, contraction)
 
     def get_polygons(self):
         res = []
@@ -218,7 +221,7 @@ class ComplexMuscleModel(VisibleObject, list):
         for i in range(len(self.parts)):
             self.parts[i].accept(visitor)
 
-class Morph(object):
+class Morph(BaseObject):
     def __init__(self, begin, end, frames=30):
         self.begin = begin
         self.end = end
@@ -285,15 +288,13 @@ class Morph(object):
         return self.pairs
 
     def calculate_paths(self):
-        permutations = [[0, 1, 2], [1,2,0], [2,0,1]]
-
         for pair in self.pairs:
             p1 = self.begin[pair[0]].get_points()
             p2 = self.end[pair[1]].get_points()
             v3 = []
             for i in range(3):
                 v = Vector()
-                v.from_points(p1[i], p2[permutations[pair[2]][i]])
+                v.from_points(p1[i], p2[i])
                 v3.append(v)
 
             self.paths.append(v3)
@@ -312,29 +313,3 @@ class Morph(object):
             result.append(Polygon(points[0], points[1], points[2], self.begin[self.pairs[i][0]].color))
 
         return result
-
-
-if __name__ == '__main__':
-    polygon1_s = Polygon(Point(0, 0, 200), Point(100, 0, 200), Point(0, 100, 200))
-    polygon3_s = Polygon(Point(0, 0, 0), Point(100, 0, 0), Point(0, 100, 0))
-    polygon2_s = Polygon(Point(900, 900, 0), Point(800, 900, 0), Point(900, 800, 0))
-
-    polygon1_e = Polygon(Point(0, 0, 100), Point(100, 0, 100), Point(0, 100, 100))
-    polygon2_e = Polygon(Point(900, 900, 100), Point(800, 900, 100), Point(900, 800, 100))
-    polygon3_e = Polygon(Point(0, 0, 300), Point(100, 0, 300), Point(0, 100, 300))
-
-    begins = [polygon1_s, polygon2_s, polygon3_s]
-    ends = [polygon1_e, polygon2_e, polygon3_e]
-    m = Morph(begins, ends)
-    m.map_polygons()
-    m.calculate_paths()
-
-    print(m.pairs)
-    for iii in range(11):
-        t = m.frame(iii, 10)
-        for polygon in t:
-            ps = polygon.get_points()
-            for point in ps:
-                print(point.x, point.y, point.z)
-            print('---------------')
-            break

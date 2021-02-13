@@ -2,16 +2,8 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtCore import Qt
 
 from baseobject import BaseObject, Point, Vector
-from invisibleobject import LightSource
 
-class VisibleObject(BaseObject):
-    def is_visible(self):
-        return True
-    
-    def isViewer(self):
-        return False
-
-class Polygon(VisibleObject):
+class Polygon(BaseObject):
     def __init__(self, p1: Point, p2: Point, p3: Point, color: QColor = Qt.black):
         self.p1 = p1
         self.p2 = p2

@@ -3,7 +3,7 @@ import sys
 from PyQt5 import uic, QtGui, QtCore
 from PyQt5.QtWidgets import *
 
-from controlcommand import *
+from commands import *
 from invisibleobject import LightSource, Camera
 from sceneinterface import SceneInterface
 
@@ -17,6 +17,8 @@ class Ui(QMainWindow):
         self.pixmap.fill(QtCore.Qt.white)
         self.graphics_scene = QGraphicsScene(self)
         self.graphicsView.setScene(self.graphics_scene)
+
+        self.label_6.setToolTip("При изотоническом-параметр напряженности, при изометрическом-степень изменения длины")
 
         self.sceneInterface = SceneInterface()
 
@@ -57,6 +59,7 @@ class Ui(QMainWindow):
         self.loadButton.clicked.connect(self.load)
 
         self.animationButton.clicked.connect(self.animate)
+        self.frameButton.clicked.connect(self.show_frame)
 
     def load(self):
         filename_dlg = QFileDialog(self, 'Загрузить модель', sys.argv[0], "Text file (*.txt)")
@@ -78,6 +81,16 @@ class Ui(QMainWindow):
 
         self.graphics_scene.addPixmap(self.pixmap.fromImage(canvas))
 
+    def send_draw_frame_command(self, frame):
+        canvas = QImage(900, 900, QImage.Format_ARGB32)
+        canvas.fill(QtCore.Qt.white)
+
+        draw = QDrawAnimationCommand(canvas)
+        draw.set_frame(frame)
+
+        self.sceneInterface.execute(draw)
+        self.graphics_scene.addPixmap(self.pixmap.fromImage(canvas))
+
     def send_draw_animation_command(self, frames):
         canvas = QImage(900, 900, QImage.Format_ARGB32)
         canvas.fill(QtCore.Qt.white)
@@ -95,12 +108,24 @@ class Ui(QMainWindow):
 
     def animate(self):
         frames = self.framesSpinBox.value()
-
         new_length = self.newLengthSpinBox.value()
-        animate_command = AnimateCommand(new_length, frames)
+        contraction = 0 if self.metricButton.isChecked() else 1
+
+        animate_command = AnimateCommand(new_length, contraction, frames)
         self.sceneInterface.execute(animate_command)
 
         self.send_draw_animation_command(frames)
+
+    def show_frame(self):
+        frames = self.framesSpinBox.value()
+        new_length = self.newLengthSpinBox.value()
+        contraction = 0 if self.metricButton.isChecked() else 1
+
+        animate_command = AnimateCommand(new_length, contraction, frames)
+        self.sceneInterface.execute(animate_command)
+
+        frame = self.frameSpinBox.value()
+        self.send_draw_frame_command(frame)
 
     def move_model(self, x, y, z):
         command = MoveModelCommand(x, y, z, 0)

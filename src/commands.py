@@ -1,9 +1,11 @@
-from basecommand import BaseCommand
 from builder import ModelBuilder
-from controlmanager import *
+from managers import *
 from musclemodel import Morph, ComplexMuscleModel
 from visitor import RotateVisitor, MoveVisitor
 
+class BaseCommand(object):
+    def execute(self, scene):
+        pass
 
 class LoadCommand(BaseCommand):
     def __init__(self, filename):
@@ -45,7 +47,6 @@ class AddCommand(BaseCommand):
     def __init__(self, adding):
         self.adding = adding
 
-
 class AddCameraCommand(AddCommand):
     def __init__(self, adding):
         super().__init__(adding)
@@ -60,11 +61,15 @@ class AddLightCommand(AddCommand):
     def execute(self, scene):
         scene.add_light(self.adding)
 
-class MoveCommand(BaseCommand):
+class TransformCommand(BaseCommand):
     def __init__(self, x, y, z):
         self.x = x
         self.y = y
         self.z = z
+
+class MoveCommand(TransformCommand):
+    def __init__(self, x, y, z):
+        super().__init__(x, y, z)
 
 class MoveLightCommand(MoveCommand):
     def __init__(self, x, y, z, light_index):
@@ -86,11 +91,9 @@ class MoveModelCommand(MoveCommand):
         visitor = MoveVisitor(self.x, self.y, self.z)
         model.accept(visitor)
 
-class RotateCommand(BaseCommand):
+class RotateCommand(TransformCommand):
     def __init__(self, x, y, z, center_x=0, center_y=0, center_z=0):
-        self.x = x
-        self.y = y
-        self.z = z
+        super().__init__(x, y, z)
         self.center_x = center_x
         self.center_y = center_y
         self.center_z = center_z
@@ -108,15 +111,16 @@ class RotateModelCommand(RotateCommand):
         model.accept(visitor)
 
 class AnimateCommand(BaseCommand):
-    def __init__(self, new_length, frames=30):
+    def __init__(self, parameter, contraction, frames=30):
         self.frames = frames
-        self.new_length = new_length
+        self.parameter = parameter
+        self.contraction = contraction
 
     def execute(self, scene):
         model = scene.get_model(0)
         model: ComplexMuscleModel
         a = model.get_polygons()
-        model.contract(self.new_length)
+        model.contract(self.parameter, self.contraction)
 
         if len(scene.get_models()) == 2:
             scene.remove_model(1)

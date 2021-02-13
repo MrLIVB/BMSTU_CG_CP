@@ -1,4 +1,4 @@
-from math import sin, cos, pi, radians
+from math import sin, cos, radians
 
 from baseobject import Point
 

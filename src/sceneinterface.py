@@ -1,5 +1,5 @@
 from scene import Scene
-from basecommand import BaseCommand
+from commands import BaseCommand
 
 class SceneInterface(object):
     def __init__(self):
