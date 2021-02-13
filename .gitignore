@@ -4,3 +4,17 @@ __pycache__/
 .idea
 .vscode
 *.autosave
+
+# tex
+*.aux
+*.log
+*.ingo
+*.clo
+*.bbl
+*.blg
+*.nlo
+*.out
+*.gz
+*.toc
+*.sty
+*.info
