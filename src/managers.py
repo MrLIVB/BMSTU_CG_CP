@@ -5,6 +5,7 @@ from builddirector import BuildDirector
 from musclemodel import Morph
 from visibleobject import *
 from visualizer import *
+from musclemodel import ComplexMuscleModel
 
 class BaseSceneManager(object):
     def __init__(self, scene: BaseScene):
@@ -22,6 +23,7 @@ class LoadManager(BaseSceneManager):
         if self.scene is None:
             print("No scene")
 
+        self.scene.objects.clear()
         self.scene.add_object(self.director.create())
 
 class DrawManager(BaseSceneManager):
@@ -40,12 +42,14 @@ class DrawManager(BaseSceneManager):
         lights = self.scene.get_lights()
         cam = self.scene.get_camera()
 
-        for model in self.scene.get_model(0):
-            process_polygons = [[polygon, True if polygon.get_normal().scalar_multiplication(cam.direction) > 0 else False] for polygon in model.polygons]
+        for model in self.scene.get_models():
+            if type(model) is ComplexMuscleModel:
+                for part in model:
+                    process_polygons = [[polygon, True if polygon.get_normal().scalar_multiplication(cam.direction) > 0 else False] for polygon in part.polygons]
 
-            for polygon in process_polygons:
-                if polygon[1]:
-                    zbuf.process_polygon(polygon[0], lights)
+                    for polygon in process_polygons:
+                        if polygon[1]:
+                            zbuf.process_polygon(polygon[0], lights)
 
         for light in lights:
             zbuf.safe_process_point(light.x, light.y, light.z, 900, 900, Qt.blue)

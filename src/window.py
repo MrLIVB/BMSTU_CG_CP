@@ -7,6 +7,7 @@ from commands import *
 from invisibleobject import LightSource, Camera
 from sceneinterface import SceneInterface
 
+from time import perf_counter
 
 class Ui(QMainWindow):
     def __init__(self):
@@ -28,6 +29,7 @@ class Ui(QMainWindow):
         self.sceneInterface.execute(add)
 
         self.lightNumberSpinBox.setMaximum(len(self.sceneInterface.scene.get_lights()))
+        self.frameSpinBox.setMaximum(self.framesSpinBox.value())
 
         self.connect_buttons()
 
@@ -61,6 +63,8 @@ class Ui(QMainWindow):
         self.animationButton.clicked.connect(self.animate)
         self.frameButton.clicked.connect(self.show_frame)
 
+        self.framesSpinBox.valueChanged.connect(self.set_spinbox_limit)
+
     def load(self):
         filename_dlg = QFileDialog(self, 'Загрузить модель', sys.argv[0], "Text file (*.txt)")
         filename_dlg.exec_()
@@ -76,6 +80,7 @@ class Ui(QMainWindow):
     def send_draw_command(self):
         canvas = QImage(900, 900, QImage.Format_ARGB32)
         canvas.fill(QtCore.Qt.white)
+
         draw = QDrawCommand(canvas)
         self.sceneInterface.execute(draw)
 
@@ -109,7 +114,7 @@ class Ui(QMainWindow):
     def animate(self):
         frames = self.framesSpinBox.value()
         new_length = self.newLengthSpinBox.value()
-        contraction = 0 if self.metricButton.isChecked() else 1
+        contraction = 1 if self.metricButton.isChecked() else 0
 
         animate_command = AnimateCommand(new_length, contraction, frames)
         self.sceneInterface.execute(animate_command)
@@ -119,12 +124,15 @@ class Ui(QMainWindow):
     def show_frame(self):
         frames = self.framesSpinBox.value()
         new_length = self.newLengthSpinBox.value()
-        contraction = 0 if self.metricButton.isChecked() else 1
+        contraction = 1 if self.metricButton.isChecked() else 0
+        frame = self.frameSpinBox.value()
+
+        if frame < 0 or frame > frames:
+            return  # TODO error
 
         animate_command = AnimateCommand(new_length, contraction, frames)
         self.sceneInterface.execute(animate_command)
 
-        frame = self.frameSpinBox.value()
         self.send_draw_frame_command(frame)
 
     def move_model(self, x, y, z):
@@ -149,9 +157,13 @@ class Ui(QMainWindow):
         self.sceneInterface.execute(command)
 
         self.lightNumberSpinBox.setMaximum(self.lightNumberSpinBox.maximum() + 1)
+
         self.send_draw_command()
 
     def rotate(self, x, y, z):
         command = RotateModelCommand(x, y, z)
         self.sceneInterface.execute(command)
         self.send_draw_command()
+
+    def set_spinbox_limit(self):
+        self.frameSpinBox.setMaximum(self.framesSpinBox.value())
